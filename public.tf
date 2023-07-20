@@ -24,15 +24,15 @@ resource "aws_subnet" "public_a" {
   availability_zone = "us-east-2a"
 }
 
-resource "aws_eip" "eip_b" {
-  tags = merge(var.tags, {})
-}
-
 resource "aws_eip" "eip_c" {
   tags = merge(var.tags, {})
 }
 
 resource "aws_eip" "eip_a" {
+  tags = merge(var.tags, {})
+}
+
+resource "aws_eip" "eip_b" {
   tags = merge(var.tags, {})
 }
 
@@ -54,9 +54,8 @@ resource "aws_nat_gateway" "nat-gw-2b-public" {
   allocation_id = aws_eip.eip_b.id
 }
 
-resource "aws_route_table" "rt_public_c" {
+resource "aws_route_table" "rt_public_a" {
   vpc_id = aws_vpc.default.id
-  tags   = merge(var.tags, {})
 }
 
 resource "aws_route_table" "rt_public_b" {
@@ -64,7 +63,8 @@ resource "aws_route_table" "rt_public_b" {
   tags   = merge(var.tags, {})
 }
 
-resource "aws_route_table" "rt_public_a" {
+resource "aws_route_table" "rt_public_c" {
   vpc_id = aws_vpc.default.id
+  tags   = merge(var.tags, {})
 }
 
