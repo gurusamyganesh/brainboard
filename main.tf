@@ -18,72 +18,94 @@ resource "aws_route_table_association" "aws_route_table_association_13" {
   route_table_id = aws_route_table.rt_private_c.id
 }
 
-resource "aws_lambda_function" "aws_lambda_function_14" {
+resource "aws_security_group" "brainboard-sg" {
+  vpc_id = aws_vpc.default.id
+  tags   = merge(var.tags, {})
+
+  egress {
+    to_port   = 0
+    protocol  = "tcp"
+    from_port = 0
+    cidr_blocks = [
+      "0.0.0.0/0",
+    ]
+  }
+
+  ingress {
+    to_port   = 0
+    protocol  = "tcp"
+    from_port = 0
+    cidr_blocks = [
+      "0.0.0.0/0",
+    ]
+  }
+}
+
+resource "aws_iam_role" "Brainboard_iam_role" {
+  tags = merge(var.tags, { Name = "Brainboard_IAMRole" })
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "aws_iam_role_policy_attachment_17" {
+  role       = aws_iam_role.Brainboard_iam_role.name
+  policy_arn = aws_iam_policy.Brainboard_iam_policy.arn
+
+  depends_on = [
+    aws_iam_role.Brainboard_iam_role,
+    aws_iam_policy.Brainboard_iam_policy,
+  ]
+}
+
+resource "aws_iam_policy" "Brainboard_iam_policy" {
+  tags = merge(var.tags, {})
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ]
+      Resource = ["arn:aws:logs:*:*:*"]
+      }, {
+      Effect = "Allow"
+      Action = [
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DeleteNetworkInterface"
+      ]
+      Resource = ["*"]
+    }]
+  })
+}
+
+data "archive_file" "terraform_resource_19" {
+
+  type        = "zip"
+  source_dir  = "${path.module}/python/"
+  output_path = "${path.module}/python/testpy.zip"
+}
+
+resource "aws_lambda_function" "aws_lambda_function_20" {
   tags          = merge(var.tags, {})
-  runtime       = "Phyton3.8"
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "test.lambda_handler"
-  function_name = "restapi_py"
-  filename      = "${path.module}/python/testpy.zip"
+  runtime       = "python3.8"
+  role          = aws_iam_role.Brainboard_iam_role.arn
+  handler       = "test"
+  function_name = "test"
+  filename      = "${path.module}/python/test.zip"
 
   depends_on = [
     aws_iam_role_policy_attachment.aws_iam_role_policy_attachment_17,
   ]
-}
-
-resource "aws_iam_policy" "aws_iam_policy_15" {
-  tags   = merge(var.tags, {})
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "lambda.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
-  name   = "lambda_role"
-}
-
-resource "aws_iam_policy" "aws_iam_policy_16" {
-  tags   = merge(var.tags, {})
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": "arn:aws:logs:*:*:*",
-      "Effect": "Allow"
-    }
-  ]
-}
-EOF
-  path   = "/"
-  name   = "iam_policy_for_lambda"
-}
-
-resource "aws_iam_role_policy_attachment" "aws_iam_role_policy_attachment_17" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.iam_policy_for_lambda.arn
-}
-
-resource "lambda_archive" "terraform_resource_18" {
-
-  data "archive_file" "zip_the_python_code" {
-    type        = "zip"
-    source_dir  = "${path.module}/python/"
-    output_path = "${path.module}/python/hello-python.zip"
-  }
 }
 
